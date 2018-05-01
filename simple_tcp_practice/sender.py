@@ -13,6 +13,16 @@ print("Receiver IP = ",serverIP)
 print("Receiver Port = ",serverPort)
 
 file_name = input("Input File Name : ")
+
+while len(file_name)!=11 : #예외처리
+	print("잘못입력하셨습니다.  다시 입력하세요.")
+	file_name = input("Input File Name : ")
+
+while os.path.isfile(file_name) == False : #예외처리
+	print("잘못입력하셨습니다.  다시 입력하세요.")
+	file_name = input("Input File Name : ")
+
+
 input_type = 0 #메시지 타입, 파일 정보(파일명, 파일 크기)를 전송할 때
 file_size = os.path.getsize(file_name) 
 

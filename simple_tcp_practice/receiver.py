@@ -41,13 +41,10 @@ while True:
 		print(resend_message)
 		client_sock.send(resend_message.encode())
 		
-	else:
+	else: #예외처리 
 		print("타입을 잘못입력하셨습니다. 다시 연결하세요.")
 		break
-	
-	if not output_message:
-		print("통신에 실패했습니다.")
-		break
+
 
 file.close()
 client_sock.close()
