@@ -22,7 +22,11 @@ while True:
 
 	output_type = output_message[0]
 	output_path = "./received_dir/"
-	
+
+	if not os.path.isdir("received_dir/"): #디렉토리 유무 확인
+		print("received_dir 디렉토리가 없으므로 생성합니다.")
+		os.mkdir("received_dir/") #없으면 생성
+
 	if output_type == 0:
 		output_name = output_message[1:12].decode()
 		output_size = struct.unpack("!I",output_message[12:16])[0]
@@ -41,7 +45,7 @@ while True:
 		print(resend_message)
 		client_sock.send(resend_message.encode())
 		
-	else: #예외처리 
+	else:
 		print("타입을 잘못입력하셨습니다. 다시 연결하세요.")
 		break
 
@@ -49,4 +53,4 @@ while True:
 file.close()
 client_sock.close()
 server_sock.close()
-print("File receive end")
+print("File receive end.")
