@@ -31,7 +31,7 @@ while True:
 		file_name = output_data[1:12].decode()
 		file_size = struct.unpack("!I",output_data[12:16])[0]
 		file_path = "./received_dir/"
-		
+
 		if not os.path.isdir("received_dir/"): #디렉토리 유무 확인
 			print("received_dir 디렉토리가 없으므로 생성합니다.")
 			os.mkdir("received_dir/") #없으면 생성
@@ -46,6 +46,7 @@ while True:
 			ACK=1
 		elif output_seqNum % 2 == 1:
 			ACK=0
+
 		server_sock.sendto(ACK.to_bytes(1,byteorder="big"), addr)
 		prev_seqNum = output_seqNum #seqNum검사 위해 저장
 		break #정확한 정보를 받으면 종료

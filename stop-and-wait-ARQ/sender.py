@@ -36,13 +36,19 @@ checksum = make_checksum(total_data)
 
 #sending
 while True:
-	clnt_sock.sendto(checksum.digest()+total_data, (serverIP, serverPort))
-	current_response = clnt_sock.recv(1)[0]
+	try:	
+		clnt_sock.sendto(checksum.digest()+total_data, (serverIP, serverPort))
+		current_response = clnt_sock.recv(1)[0]
 	
-	if current_response == 1:
-		prev_response = current_response
-		prev_seqNum = seqNum
-		break
+		if current_response == 1:
+			prev_response = current_response
+			prev_seqNum = seqNum
+			break
+	except socket.timeout: #timeout 걸렸을 때
+		print("* TimeOut!! **")
+		print("File Info Retransmission")
+		clnt_sock.sendto(checksum.digest()+total_data, (serverIP, serverPort)) #데이터 재전송
+		current_response = clnt_sock.recv(1)[0]		
 
 #파일 데이터 읽어서 보내기
 print("Start File send")
