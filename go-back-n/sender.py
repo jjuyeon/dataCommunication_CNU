@@ -1,4 +1,3 @@
-# coding=utf-8
 import socket
 import os
 import hashlib
@@ -47,9 +46,12 @@ prev_seqNum = seqNum
 #파일 데이터 읽어서 보내기
 print("Start File send")
 current_size = 0 #만들어지는 파일의 현재 상태 확인하기 위한 변수
+send_count = 1 #오류검사를 하기 위한 변수
 
 for i in range(3): #처음 4개의 데이터는 연속으로 보냄
 	send_data = file.read(1024) #파일을 읽음
+	
+	send_count+=1
 
 	seqNum = seqNum+1 #seqNum update
 	seqNum = seqNum % 8 #0~7사이의 seqNum이 나오게 함
@@ -89,37 +91,55 @@ while True:
 	recv_ACK = response & 15
 	recv_seqNum = response >> 4
 
-	if recv_ACK == 0:
-		cal_ACK = 8
-	else:
-		cal_ACK = recv_ACK
-
-	for i in range(cal_ACK - prev_ACK):
-		current_window = (prev_ACK) % 4	
-		send_data = file.read(1024) #파일을 읽음
-
-		seqNum = seqNum+1 #seqNum update
-		seqNum = seqNum % 8 #0~7사이의 seqNum이 나오게 함
-		ACK = seqNum #ACK은 seqNum과 동일
-		bSeqNum = seqNum << 4 #4bit
-		ACK = ACK & 0b1111 #4bit
-
-		send_message = (bSeqNum|ACK).to_bytes(1,byteorder = "big") + send_data
-
-		#checksum 생성
-		checksum = make_checksum(send_message)
-
-		#sending
-		window[current_window] = checksum.digest()+send_message
-		clnt_sock.sendto(window[current_window], (serverIP, serverPort))
-		current_size += len(send_data)
-
+	if recv_ACK == 15: #NAK
+		print("* Received NAK - Retransmit!")
+		#recv_seqNum 프레임부터 window에 있는 4개의 frame 보내줌
+		for i in range(4):
+			clnt_sock.sendto(window[(recv_seqNum-1+i)%4], (serverIP, serverPort))
+	
+		print("* window[0,1,2,3] transmit clear!")
 		resend_message = "(current size / total size) = "+ str(current_size)+ "/"+ str(file_size)+ " , "+  str(round(100 * (current_size / file_size), 3))+ " %"
 		print(resend_message)
+		print("============================================")
 
-		prev_seqNum = recv_seqNum
-		prev_ACK = (prev_ACK+1)%8
+	else: #ACK
+		if recv_ACK == 0:
+			cal_ACK = 8
+		else:
+			cal_ACK = recv_ACK
+	
+		for i in range(cal_ACK - prev_ACK):
+			current_window = (prev_ACK) % 4	
+			send_data = file.read(1024) #파일을 읽음
+	
+			send_count += 1
 
+			seqNum = seqNum+1 #seqNum update
+			seqNum = seqNum % 8 #0~7사이의 seqNum이 나오게 함
+			ACK = seqNum #ACK은 seqNum과 동일
+			bSeqNum = seqNum << 4 #4bit
+			ACK = ACK & 0b1111 #4bit
+	
+			send_message = (bSeqNum|ACK).to_bytes(1,byteorder = "big") + send_data
+
+			#checksum 생성
+			checksum = make_checksum(send_message)
+	
+			#sending
+			window[current_window] = checksum.digest()+send_message
+			
+			if (send_count == 10) or (send_count == 20): #checksum error 검사하기 위함(잘못된 checksum으로 변경)
+				clnt_sock.sendto((window[current_window][0:19]+("A").encode()+window[current_window][20:]), (serverIP, serverPort))
+
+			else:
+				clnt_sock.sendto(window[current_window], (serverIP, serverPort))
+			
+			current_size += len(send_data)
+			resend_message = "(current size / total size) = "+ str(current_size)+ "/"+ str(file_size)+ " , "+  str(round(100 * (current_size / file_size), 3))+ " %"
+			print(resend_message)
+
+			prev_seqNum = recv_seqNum
+			prev_ACK = (prev_ACK+1)%8
 
 file.close() #파일 닫아줌
 clnt_sock.close() #socket닫아줌

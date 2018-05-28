@@ -43,6 +43,7 @@ while True:
 		print("received file Path = ",file_path+file_name)
 
 		prev_ack = output_ack #seqNum검사 위해 저장
+		prev_seqNum = output_seqNum
 
 		output_seqNum = (output_seqNum+1)%8
 		output_ack = (output_ack+1)%8
@@ -50,6 +51,7 @@ while True:
 		ACK = output_ack & 0b1111 #4bit
 		
 		server_sock.sendto((bSeqNum|ACK).to_bytes(1,byteorder = "big"), addr)
+
 		break #정확한 정보를 받으면 종료
 
 
@@ -67,8 +69,8 @@ while True:
 	data_checksum = make_checksum(total_message[20:])
 	
 
-	check_ack = (prev_ack+1)%8
-	if(output_checksum == data_checksum.digest()) and (check_ack == output_seqNum): #정상전송(checksum검사 일치)
+	check_seqNum = (prev_seqNum+1)%8
+	if(output_checksum == data_checksum.digest()) and (check_seqNum == output_seqNum): #정상전송(checksum검사 일치)
 		#파일 쓰기 시작
 		file.write(output_message)
 		current_size += len(output_message)
@@ -79,20 +81,29 @@ while True:
 		print(resend_message)
 
 		prev_ack = output_ack #seqNum검사 위해 저장
+		prev_seqNum = output_seqNum
 
 		output_seqNum = (output_seqNum+1)%8
 		output_ack = (output_ack+1)%8
 		bSeqNum = output_seqNum << 4 #4bit
 		ACK = output_ack & 0b1111 #4bit
-		
-		server_sock.sendto((bSeqNum|ACK).to_bytes(1,byteorder = "big"), addr) #seqNum+ACK 전송
 
+		server_sock.sendto((bSeqNum|ACK).to_bytes(1,byteorder = "big"), addr) #seqNum+ACK 전송
+		
 	elif (output_checksum != data_checksum.digest()): #NAK전송
 		NAK = 0b1111
+		output_seqNum = (output_seqNum+1)%8
 		bSeqNum = output_seqNum << 4 #4bit
-		NAK = NAK & 0b1111 #4bit
+		print("* Packet corrupted!! *** - Send To Sender NAK(0b1111)")
 		server_sock.sendto((bSeqNum|NAK).to_bytes(1,byteorder = "big"), addr)
-	#elif (check_ack != output_seqNum): #순서 틀림
+
+	elif (check_seqNum != output_seqNum): #seqNum 잘못된 경우:ACK전송 + packet discard
+		output_seqNum = (output_seqNum+1)%8
+		output_ack = (output_ack+1)%8
+		bSeqNum = output_seqNum << 4 #4bit
+		ACK = output_ack & 0b1111 #4bit
+		print("*** packet discard")
+		server_sock.sendto((bSeqNum|ACK).to_bytes(1,byteorder="big"), addr)
 
 	if current_size==file_size : #종료조건
 		break
