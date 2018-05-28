@@ -1,5 +1,5 @@
+# coding=utf-8
 import socket
-import struct
 import os
 import hashlib
 
@@ -103,9 +103,9 @@ while True:
 		ACK = seqNum #ACK은 seqNum과 동일
 		bSeqNum = seqNum << 4 #4bit
 		ACK = ACK & 0b1111 #4bit
-		
+
 		send_message = (bSeqNum|ACK).to_bytes(1,byteorder = "big") + send_data
-			
+
 		#checksum 생성
 		checksum = make_checksum(send_message)
 

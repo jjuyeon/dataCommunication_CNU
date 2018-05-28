@@ -87,6 +87,13 @@ while True:
 		
 		server_sock.sendto((bSeqNum|ACK).to_bytes(1,byteorder = "big"), addr) #seqNum+ACK 전송
 
+	elif (output_checksum != data_checksum.digest()): #NAK전송
+		NAK = 0b1111
+		bSeqNum = output_seqNum << 4 #4bit
+		NAK = NAK & 0b1111 #4bit
+		server_sock.sendto((bSeqNum|NAK).to_bytes(1,byteorder = "big"), addr)
+	#elif (check_ack != output_seqNum): #순서 틀림
+
 	if current_size==file_size : #종료조건
 		break
 
