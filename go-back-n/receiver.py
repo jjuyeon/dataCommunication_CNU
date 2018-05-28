@@ -2,6 +2,7 @@ import socket
 import struct
 import os
 import hashlib
+import time
 
 ip_address = '127.0.0.1'
 port_number = 3333
@@ -57,7 +58,7 @@ while True:
 
 #파일 데이터 받기
 current_size = 0 #만들어지는 파일의 현재 상태 확인하기 위한 변수
-receive_count = 0 #오류검사를 하기 위한 변수
+receive_count = 1 #오류검사를 하기 위한 변수
 while True:
 	total_message,addr = server_sock.recvfrom(1045)
 	output_checksum = total_message[0:20] #checksum
@@ -75,6 +76,10 @@ while True:
 		file.write(output_message)
 		current_size += len(output_message)
 		receive_count += 1 #파일을 몇번 receive하는지 저장
+
+		if (receive_count == 20) or (receive_count == 25):#timeout error 검사하기 위함
+			print("wait for 5...")
+			time.sleep(5)
 
 		resend_message = "(current size / total size) = "+ str(current_size)+ "/"+ str(file_size)+ " , "+  str(round(100 * (current_size / file_size), 3))+ " %"
 
@@ -98,11 +103,12 @@ while True:
 		server_sock.sendto((bSeqNum|NAK).to_bytes(1,byteorder = "big"), addr)
 
 	elif (check_seqNum != output_seqNum): #seqNum 잘못된 경우:ACK전송 + packet discard
-		output_seqNum = (output_seqNum+1)%8
-		output_ack = (output_ack+1)%8
+		print("*** packet discard")		
+		output_seqNum = (prev_seqNum+1)%8
+		output_ack = (prev_seqNum+1)%8
 		bSeqNum = output_seqNum << 4 #4bit
 		ACK = output_ack & 0b1111 #4bit
-		print("*** packet discard")
+
 		server_sock.sendto((bSeqNum|ACK).to_bytes(1,byteorder="big"), addr)
 
 	if current_size==file_size : #종료조건
