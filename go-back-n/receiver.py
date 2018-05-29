@@ -51,6 +51,9 @@ while True:
 		bSeqNum = output_seqNum << 4 #4bit
 		ACK = output_ack & 0b1111 #4bit
 		
+		current_ack = output_ack
+		current_seqNum = output_seqNum
+
 		server_sock.sendto((bSeqNum|ACK).to_bytes(1,byteorder = "big"), addr)
 
 		break #정확한 정보를 받으면 종료
@@ -77,7 +80,7 @@ while True:
 		current_size += len(output_message)
 		receive_count += 1 #파일을 몇번 receive하는지 저장
 
-		if (receive_count == 20) or (receive_count == 25):#timeout error 검사하기 위함
+		if (receive_count == 15) or (receive_count == 20):#timeout error 검사하기 위함
 			print("wait for 5...")
 			time.sleep(5)
 
@@ -92,20 +95,20 @@ while True:
 		output_ack = (output_ack+1)%8
 		bSeqNum = output_seqNum << 4 #4bit
 		ACK = output_ack & 0b1111 #4bit
+		
+		current_ack = output_ack
+		current_seqNum = output_seqNum
 
 		server_sock.sendto((bSeqNum|ACK).to_bytes(1,byteorder = "big"), addr) #seqNum+ACK 전송
 		
 	elif (output_checksum != data_checksum.digest()): #NAK전송
 		NAK = 0b1111
-		output_seqNum = (output_seqNum+1)%8
-		bSeqNum = output_seqNum << 4 #4bit
 		print("* Packet corrupted!! *** - Send To Sender NAK(0b1111)")
 		server_sock.sendto((bSeqNum|NAK).to_bytes(1,byteorder = "big"), addr)
 
 	elif (check_seqNum != output_seqNum): #seqNum 잘못된 경우:ACK전송 + packet discard
-		print("*** packet discard")		
-		output_seqNum = (prev_seqNum+1)%8
-		output_ack = (prev_seqNum+1)%8
+		output_seqNum = (current_seqNum)%8
+		output_ack = (current_ack)%8
 		bSeqNum = output_seqNum << 4 #4bit
 		ACK = output_ack & 0b1111 #4bit
 

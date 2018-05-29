@@ -94,10 +94,10 @@ while True:
 		recv_seqNum = response >> 4
 
 		if recv_ACK == 15: #NAK
-			print("* Received NAK - Retransmit!")
 			#recv_seqNum 프레임부터 window에 있는 4개의 frame 보내줌
+			print("* Received NAK - Retransmit!")
 			for i in range(4):
-				clnt_sock.sendto(window[(recv_seqNum-1+i)%4], (serverIP, serverPort))
+				clnt_sock.sendto(window[(recv_seqNum+i)%4], (serverIP, serverPort))
 	
 			print("* window[0,1,2,3] transmit clear!")
 			print("Retransmission : "+resend_message)
@@ -129,12 +129,12 @@ while True:
 				#sending
 				window[current_window] = checksum.digest()+send_message
 
-				if (send_count == 10) or (send_count == 15): #checksum error 검사하기 위함(잘못된 checksum으로 변경)
+				if (send_count == 5) or (send_count == 10): #checksum error 검사하기 위함(잘못된 checksum으로 변경)
 					clnt_sock.sendto((window[current_window][0:19]+("A").encode()+window[current_window][20:]), (serverIP, serverPort))
 
 				else:
 					clnt_sock.sendto(window[current_window], (serverIP, serverPort))
-			
+
 				current_size += len(send_data)
 				resend_message = "(current size / total size) = "+ str(current_size)+ "/"+ str(file_size)+ " , "+  str(round(100 * (current_size / file_size), 3))+ " %"
 				print(resend_message)
@@ -146,7 +146,7 @@ while True:
 		print("* TimeOut!! **")
 		#recv_seqNum 프레임부터 window에 있는 4개의 frame 보내줌
 		for i in range(4):
-			clnt_sock.sendto(window[(recv_seqNum-1+i)%4], (serverIP, serverPort))
+			clnt_sock.sendto(window[(recv_seqNum+i)%4], (serverIP, serverPort))
 		print("* window[0,1,2,3] transmit clear!")
 		print("Retransmission : "+resend_message)
 		print("============================================")
